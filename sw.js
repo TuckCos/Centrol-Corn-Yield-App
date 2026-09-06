@@ -1,4 +1,4 @@
-const CACHE = 'centrol-yield-v5';
+const CACHE = 'centrol-yield-v6';
 
 const ASSETS = [
   './',
@@ -20,13 +20,11 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(cacheNames => {
-        return Promise.all(
-          cacheNames
-            .filter(cacheName => cacheName !== CACHE)
-            .map(cacheName => caches.delete(cacheName))
-        );
-      })
+      .then(cacheNames => Promise.all(
+        cacheNames
+          .filter(cacheName => cacheName !== CACHE)
+          .map(cacheName => caches.delete(cacheName))
+      ))
       .then(() => self.clients.claim())
   );
 });
@@ -34,23 +32,19 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+      if (cachedResponse) return cachedResponse;
 
       return fetch(event.request)
         .then(networkResponse => {
-          const responseCopy = networkResponse.clone();
+          const copy = networkResponse.clone();
 
           caches.open(CACHE).then(cache => {
-            cache.put(event.request, responseCopy);
+            cache.put(event.request, copy);
           });
 
           return networkResponse;
         })
-        .catch(() => {
-          return caches.match('./index.html');
-        });
+        .catch(() => caches.match('./index.html'));
     })
   );
 });
