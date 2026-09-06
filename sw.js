@@ -1,5 +1,6 @@
-const CACHE='centrol-yield-v4';
-const ASSETS=[
+const CACHE = 'centrol-yield-v5';
+
+const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
@@ -8,34 +9,48 @@ const ASSETS=[
   './icon-512.png'
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(
+self.addEventListener('install', event => {
+  event.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(ASSETS))
+      .then(cache => cache.addAll(ASSETS))
       .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
+self.addEventListener('activate', event => {
+  event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
-      ))
+      .then(cacheNames => {
+        return Promise.all(
+          cacheNames
+            .filter(cacheName => cacheName !== CACHE)
+            .map(cacheName => caches.delete(cacheName))
+        );
+      })
       .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(r =>
-      r || fetch(e.request)
-        .then(resp => {
-          const copy = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
-          return resp;
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetch(event.request)
+        .then(networkResponse => {
+          const responseCopy = networkResponse.clone();
+
+          caches.open(CACHE).then(cache => {
+            cache.put(event.request, responseCopy);
+          });
+
+          return networkResponse;
         })
-        .catch(() => caches.match('./index.html'))
-    )
+        .catch(() => {
+          return caches.match('./index.html');
+        });
+    })
   );
 });
