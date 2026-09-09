@@ -1,4 +1,4 @@
-const CACHE = 'centrol-yield-v28';
+const CACHE = 'centrol-yield-v29';
 const ASSETS = [
   './',
   './index.html',
